@@ -1,0 +1,109 @@
+version: "3.9"
+services:
+  postgres-core:
+    container_name: rpgtracker-core-db
+    image: "postgres:latest"
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-q", "-d", "postgres", "-U", "postgres" ]
+      timeout: 45s
+      interval: 10s
+      retries: 10
+    volumes:
+      - postgres_core_data:/var/lib/postgresql/data
+#      - ./sql:/docker-entrypoint-initdb.d/:ro # turn it on, if you need run init DB
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: rpgtracker-core
+      POSTGRES_HOST: postgres-core
+    networks:
+      - rpgtrackerdb
+      - pgadmin
+    ports:
+      - "5433:5432"
+  
+  postgres-coc:
+    container_name: rpgtracker-coc-db
+    image: "postgres:latest"
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-q", "-d", "postgres", "-U", "postgres" ]
+      timeout: 45s
+      interval: 10s
+      retries: 10
+    volumes:
+      - postgres_coc_data:/var/lib/postgresql/data
+#      - ./sql:/docker-entrypoint-initdb.d/:ro # turn it on, if you need run init DB
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: rpgtracker-coc
+      POSTGRES_HOST: postgres-coc
+    networks:
+      - rpgtrackerdb
+      - pgadmin
+    ports:
+      - "5434:5432"
+
+  rpgtracker-core:
+    container_name: rpgtracker-core
+    image: rpgtracker/core:latest
+    environment:
+      SPRING_PROFILES_ACTIVE: docker-dev
+    depends_on:
+      - postgres-core
+    ports: 
+      - "8081:8081"
+    networks:
+      - rpgtracker
+      - rpgtrackerdb
+      - rabbitmq
+      - authenticator
+
+  rpgtracker-coc:
+    container_name: rpgtracker-coc
+    image: rpgtracker/coc:latest
+    environment:
+      SPRING_PROFILES_ACTIVE: docker-dev
+    depends_on:
+      - postgres-coc
+    ports: 
+      - "8082:8082"
+    networks:
+      - rpgtracker
+      - rpgtrackerdb
+      - rabbitmq
+      - authenticator
+  
+  rpgtracker-gateway:
+    container_name: rpgtracker-gateway
+    image: rpgtracker/gateway:latest
+    environment:
+      SPRING_PROFILES_ACTIVE: docker-dev
+    depends_on: 
+      - rpgtracker-core
+      - rpgtracker-coc
+    ports: 
+      - "8080:8080"
+    networks:
+      - rpgtracker
+  
+networks:
+  rpgtrackerdb:
+    name: rpgtrackerdb
+    driver: bridge
+  rpgtracker:
+    name: rpgtracker
+    driver: bridge
+  pgadmin:
+    name: pgadmin
+    external: true
+  rabbitmq:
+    name: rabbitmq
+    external: true
+  authenticator:
+    name: authenticator
+    external: true
+
+volumes:
+  postgres_core_data:
+  postgres_coc_data:

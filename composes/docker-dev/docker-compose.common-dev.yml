@@ -1,0 +1,43 @@
+version: "3.9"
+services:
+  rabbitmq:
+    container_name: rabbitmq
+    image: "rabbitmq:management"
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    networks:
+      - rabbitmq
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+      
+  pgadmin:
+    container_name: pgadmin
+    image: "dpage/pgadmin4:latest"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: hannanicollew@outlook.com
+      PGADMIN_DEFAULT_PASSWORD: postgres
+    tty: true
+    healthcheck:
+      test: ["CMD", "ping localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    ports:
+      - "5050:80"
+    networks:
+      - pgadmin
+
+networks:
+  rabbitmq:
+    name: rabbitmq
+    driver: bridge
+  pgadmin:
+    name: pgadmin
+    driver: bridge
+
+volumes:
+  postgres_data:
