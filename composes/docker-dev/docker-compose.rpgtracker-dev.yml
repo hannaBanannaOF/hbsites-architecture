@@ -42,6 +42,27 @@ services:
     ports:
       - "5434:5432"
 
+  postgres-gb:
+    container_name: rpgtracker-gb-db
+    image: "postgres:latest"
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-q", "-d", "postgres", "-U", "postgres" ]
+      timeout: 45s
+      interval: 10s
+      retries: 10
+    volumes:
+      - postgres_gb_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: rpgtracker-gb
+      POSTGRES_HOST: postgres-gb
+    networks:
+      - rpgtrackerdb
+      - pgadmin
+    ports:
+      - "5435:5432"
+
   rpgtracker-gateway:
     container_name: rpgtracker-gateway
     image: hannabananna/commons/gateway:latest
@@ -75,35 +96,6 @@ services:
       - authenticator
       - rpgtracker
       - rpgtrackerdb
-
-  # rpgtracker-core:
-  #   container_name: rpgtracker-core
-  #   image: hannabananna/rpgtracker/core:dev
-  #   depends_on:
-  #     - postgres-core
-  #     - consul-rpgtracker
-  #   ports: 
-  #     - "8081:8081"
-  #   networks:
-  #     - rpgtracker
-  #     - rpgtrackerdb
-  #     - rabbitmq
-  #     - authenticator
-
-  # rpgtracker-coc:
-  #   container_name: rpgtracker-coc
-  #   image: rpgtracker/coc:latest
-  #   environment:
-  #     SPRING_PROFILES_ACTIVE: docker-dev
-  #   depends_on:
-  #     - postgres-coc
-  #   ports: 
-  #     - "8082:8082"
-  #   networks:
-  #     - rpgtracker
-  #     - rpgtrackerdb
-  #     - rabbitmq
-  #     - authenticator
   
   consul:
     container_name: consul-rpgtracker
@@ -135,3 +127,4 @@ networks:
 volumes:
   postgres_core_data:
   postgres_coc_data:
+  postgres_gb_data:
