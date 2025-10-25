@@ -30,6 +30,19 @@ services:
       - "5050:80"
     networks:
       - pgadmin
+  
+  aws-local:
+    container_name: aws-local
+    image: localstack/localstack:latest
+    ports:
+      - "4566:4566"
+      - "4510-4559:4510-4559"
+    environment:
+      - DEBUG=-0
+    volumes:
+      - aws-data:/var/lib/localstack
+    networks:
+      - aws-local
 
 networks:
   rabbitmq:
@@ -38,6 +51,9 @@ networks:
   pgadmin:
     name: pgadmin
     driver: bridge
+  aws-local:
+    name: aws
+    driver: bridge
 
 volumes:
-  postgres_data:
+  aws-data:

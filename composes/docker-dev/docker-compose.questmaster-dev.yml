@@ -1,0 +1,126 @@
+version: "3.9"
+services:
+  postgres-core:
+    container_name: questmaster-core-db
+    image: "postgres:latest"
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-q", "-d", "postgres", "-U", "postgres" ]
+      timeout: 45s
+      interval: 10s
+      retries: 10
+    volumes:
+      - postgres_core_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: questmaster-core
+      POSTGRES_HOST: postgres-core
+    networks:
+      - questmasterdb
+      - pgadmin
+    ports:
+      - "5433:5432"
+
+  gateway-db:
+    container_name: questmaster-gateway-db
+    image: mongo:latest
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: mongodb
+      MONGO_INITDB_DATABASE: gateway
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_gateway_data:/data/db
+    networks:
+      - questmasterdb
+
+  perm-db:
+    container_name: questmaster-perm-db
+    image: mongo:latest
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: mongodb
+      MONGO_INITDB_DATABASE: perm
+    ports:
+      - "27019:27017"
+    volumes:
+      - mongo_perm_data:/data/db
+    networks:
+      - questmasterdb
+
+  questmaster-gateway:
+    container_name: questmaster-gateway
+    image: repo.repsy.io/hannabananna/commons/gateway:latest
+    environment:
+      SPRING_PROFILES_ACTIVE: docker-dev
+      HBSITES_GATEWAY_FRONTEND_URL: http://localhost:3000
+      HBSITES_GATEWAY_KEYCLOAK_BASE_URL_INTERNAL: http://keycloak:8080
+      HBSITES_GATEWAY_KEYCLOAK_BASE_URL: http://localhost:8080
+      HBSITES_GATEWAY_KEYCLOAK_CLIENT_ID: questmaster
+      HBSITES_GATEWAY_KEYCLOAK_CLIENT_SECRET: xKa7P5CGXwoYnSjQrI7g9UUXYP16LXOw
+      HBSITES_GATEWAY_KEYCLOAK_REALM: HBsites
+      HBSITES_GATEWAY_SESSION_COOKIE_NAME: QUESTMASTER_SESSION
+      HBSITES_GATEWAY_OAUTH_CALLBACK_URL: http://localhost:8081/oauth/callback
+      HBSITES_GATEWAY_AMQP_QUEUE: questmaster-update-paths
+    depends_on:
+      - gateway-db
+    ports: 
+      - "8081:8080"
+    networks:
+      - questmaster
+      - authenticator
+      - rabbitmq
+      - questmasterdb
+
+  questmaster-core:
+    container_name: questmaster-core
+    image: repo.repsy.io/hannabananna/questmaster/questmaster-core:latest
+    environment:
+      AUTH_HOST: http://keycloak:8080
+      AUTH_REALM: HBsites
+
+      MQTT_HOST: rabbitmq
+      MQTT_PORT: 5672
+      MQTT_USER: questmaster-core
+      MQTT_PASSWORD: questmaster-core
+
+      DB_URL: postgres://postgres:postgres@postgres-core:5432/questmaster-core
+
+      MONGODB_URL: mongodb://root:mongodb@perm-db:27017/admin
+      MONGODB_DATABASENAME: questmaster-perm
+
+      GATEWAY_URL: http://questmaster-core:8080
+      GATEWAY_EXCHANGE: update-paths
+    depends_on:
+      - postgres-core
+    ports: 
+      - "8082:8080"
+    networks:
+      - authenticator
+      - rabbitmq
+      - questmaster
+      - questmasterdb
+
+networks:
+  questmasterdb:
+    name: questmasterdb
+    driver: bridge
+  questmaster:
+    name: questmaster
+    driver: bridge
+  pgadmin:
+    name: pgadmin
+    external: true
+  rabbitmq:
+    name: rabbitmq
+    external: true
+  authenticator:
+    name: authenticator
+    external: true
+
+volumes:
+  postgres_core_data:
+  postgres_coc_data:
+  mongo_gateway_data:
+  mongo_perm_data:
