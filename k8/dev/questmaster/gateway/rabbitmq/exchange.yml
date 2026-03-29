@@ -1,0 +1,13 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: Exchange
+metadata:
+  name: update-paths
+  namespace: globals
+spec:
+  name: update-paths
+  type: topic
+  durable: true
+  autoDelete: false
+  vhost: /
+  rabbitmqClusterReference:
+    name: rabbitmq

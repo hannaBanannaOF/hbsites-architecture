@@ -1,0 +1,13 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: Binding
+metadata:
+  name: update-paths-to-questmaster
+  namespace: globals
+spec:
+  vhost: /
+  source: update-paths
+  destination: questmaster-update-paths
+  destinationType: queue
+  routingKey: "#questmaster-core"
+  rabbitmqClusterReference:
+    name: rabbitmq

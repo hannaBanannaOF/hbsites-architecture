@@ -1,0 +1,14 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: questmaster-gateway-permission
+  namespace: globals
+spec:
+  user: questmaster-gateway
+  vhost: /
+  permissions:
+    configure: ".*"
+    write: ".*"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq

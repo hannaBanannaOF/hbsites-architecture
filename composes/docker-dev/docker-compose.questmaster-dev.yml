@@ -2,7 +2,7 @@ version: "3.9"
 services:
   postgres-core:
     container_name: questmaster-core-db
-    image: "postgres:latest"
+    image: "postgres:16"
     healthcheck:
       test: [ "CMD", "pg_isready", "-q", "-d", "postgres", "-U", "postgres" ]
       timeout: 45s
@@ -16,14 +16,13 @@ services:
       POSTGRES_DB: questmaster-core
       POSTGRES_HOST: postgres-core
     networks:
-      - questmasterdb
-      - pgadmin
+      - questmaster_db
     ports:
       - "5433:5432"
 
   gateway-db:
     container_name: questmaster-gateway-db
-    image: mongo:latest
+    image: mongo:8.2.4
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: mongodb
@@ -33,11 +32,11 @@ services:
     volumes:
       - mongo_gateway_data:/data/db
     networks:
-      - questmasterdb
+      - questmaster_db
 
   perm-db:
     container_name: questmaster-perm-db
-    image: mongo:latest
+    image: mongo:8.2.4
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: mongodb
@@ -47,38 +46,59 @@ services:
     volumes:
       - mongo_perm_data:/data/db
     networks:
-      - questmasterdb
+      - questmaster_db
 
   questmaster-gateway:
     container_name: questmaster-gateway
-    image: repo.repsy.io/hannabananna/commons/gateway:latest
+    image: labs.liminal/gateway:1.0.0
     environment:
-      SPRING_PROFILES_ACTIVE: docker-dev
-      HBSITES_GATEWAY_FRONTEND_URL: http://localhost:3000
-      HBSITES_GATEWAY_KEYCLOAK_BASE_URL_INTERNAL: http://keycloak:8080
-      HBSITES_GATEWAY_KEYCLOAK_BASE_URL: http://localhost:8080
-      HBSITES_GATEWAY_KEYCLOAK_CLIENT_ID: questmaster
-      HBSITES_GATEWAY_KEYCLOAK_CLIENT_SECRET: xKa7P5CGXwoYnSjQrI7g9UUXYP16LXOw
-      HBSITES_GATEWAY_KEYCLOAK_REALM: HBsites
-      HBSITES_GATEWAY_SESSION_COOKIE_NAME: QUESTMASTER_SESSION
-      HBSITES_GATEWAY_OAUTH_CALLBACK_URL: http://localhost:8081/oauth/callback
-      HBSITES_GATEWAY_AMQP_QUEUE: questmaster-update-paths
+      ALLOWED_ORIGIN: http://localhost:3000
+
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB: DEBUG
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_CLOUD_GATEWAY: DEBUG
+
+      MANAGEMENT_ENDPOINT_GATEWAY_ENABLED: true
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "*"
+
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: questmaster-gateway
+      SPRING_RABBITMQ_PASSWORD: questmaster-gateway
+
+      SPRING_DATA_MONGODB_HOST: gateway-db
+      SPRING_DATA_MONGODB_PORT: 27017
+      SPRING_DATA_MONGODB_AUTHENTICATION_DATABASE: admin
+      SPRING_DATA_MONGODB_USERNAME: root
+      SPRING_DATA_MONGODB_PASSWORD: mongodb
+      SPRING_DATA_MONGODB_DATABASE: gateway
+
+      LIMINALLABS_GATEWAY_SESSION_COOKIE_NAME: QUESTMASTER_SESSION
+      LIMINALLABS_GATEWAY_OAUTH_CALLBACK_URL: http://localhost:8081/oauth/callback
+      LIMINALLABS_GATEWAY_FRONTEND_URL: http://localhost:3000
+
+      LIMINALLABS_GATEWAY_KEYCLOAK_BASE_URL: http://localhost:8080
+      LIMINALLABS_GATEWAY_KEYCLOAK_BASE_URL_INTERNAL: http://keycloak:8080
+      LIMINALLABS_GATEWAY_KEYCLOAK_REALM: LiminalLabs
+      LIMINALLABS_GATEWAY_KEYCLOAK_CLIENT_ID: questmaster
+      LIMINALLABS_GATEWAY_KEYCLOAK_CLIENT_SECRET: xKa7P5CGXwoYnSjQrI7g9UUXYP16LXOw
+
+      LIMINALLABS_GATEWAY_AMQP_QUEUE: questmaster-update-paths
     depends_on:
       - gateway-db
     ports: 
       - "8081:8080"
     networks:
       - questmaster
-      - authenticator
+      - auth
       - rabbitmq
-      - questmasterdb
+      - questmaster_db
 
   questmaster-core:
     container_name: questmaster-core
-    image: repo.repsy.io/hannabananna/questmaster/questmaster-core:latest
+    image: labs.liminal/questmaster/questmaster-core:1.0.0
     environment:
       AUTH_HOST: http://keycloak:8080
-      AUTH_REALM: HBsites
+      AUTH_REALM: LiminalLabs
 
       MQTT_HOST: rabbitmq
       MQTT_PORT: 5672
@@ -97,30 +117,26 @@ services:
     ports: 
       - "8082:8080"
     networks:
-      - authenticator
+      - auth
       - rabbitmq
       - questmaster
-      - questmasterdb
+      - questmaster_db
 
 networks:
-  questmasterdb:
-    name: questmasterdb
+  questmaster_db:
+    name: questmaster_db
     driver: bridge
   questmaster:
     name: questmaster
     driver: bridge
-  pgadmin:
-    name: pgadmin
-    external: true
   rabbitmq:
     name: rabbitmq
     external: true
-  authenticator:
-    name: authenticator
+  auth:
+    name: auth
     external: true
 
 volumes:
   postgres_core_data:
-  postgres_coc_data:
   mongo_gateway_data:
   mongo_perm_data:
