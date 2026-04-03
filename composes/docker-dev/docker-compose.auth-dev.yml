@@ -33,6 +33,8 @@ services:
       KC_DB_URL: jdbc:postgresql://postgres/keycloak
       KC_DB_USERNAME: postgres
       KC_DB_PASSWORD: postgres
+      KC_PROXY: edge
+      KC_HOSTNAME_STRICT: false
     depends_on:
       - postgres
     ports:
@@ -40,6 +42,15 @@ services:
     networks:
       - auth
       - auth_db
+
+  tunnel-auth:
+    image: node:lts-alpine
+    container_name: tunnel-auth
+    command: npx localtunnel --port 8080 --local-host keycloak --subdomain auth-liminallabs
+    networks:
+      - auth
+    depends_on:
+      - keycloak
 
 networks:
   auth:
