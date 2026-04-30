@@ -20,6 +20,26 @@ services:
     ports:
       - "5433:5432"
 
+  postgres-coc:
+    container_name: questmaster-coc-db
+    image: "postgres:16"
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-q", "-d", "postgres", "-U", "postgres" ]
+      timeout: 45s
+      interval: 10s
+      retries: 10
+    volumes:
+      - postgres_coc_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: questmaster-coc
+      POSTGRES_HOST: postgres-coc
+    networks:
+      - questmaster_db
+    ports:
+      - "5434:5432"
+
   gateway-db:
     container_name: questmaster-gateway-db
     image: mongo:8.2.4
@@ -52,7 +72,7 @@ services:
     container_name: questmaster-gateway
     image: labs.liminal/gateway:1.0.0
     environment:
-      ALLOWED_ORIGIN: https://questmaster-liminallabs.loca.lt,http://questmaster-liminallabs.loca.lt
+      ALLOWED_ORIGIN: http://localhost:3000
 
       MANAGEMENT_ENDPOINT_GATEWAY_ACCESS: UNRESTRICTED
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "*"
@@ -65,15 +85,15 @@ services:
       SPRING_DATA_MONGODB_DATABASE: gateway
 
       LIMINALLABS_GATEWAY_SESSION_COOKIE_NAME: QUESTMASTER_SESSION
-      LIMINALLABS_GATEWAY_OAUTH_CALLBACK_URL: https://questmaster-gateway-liminallabs.loca.lt/oauth/callback
-      LIMINALLABS_GATEWAY_FRONTEND_URL: https://questmaster-liminallabs.loca.lt
-      LIMINALLABS_GATEWAY_COOKIE_DOMAIN: loca.lt
+      LIMINALLABS_GATEWAY_OAUTH_CALLBACK_URL: http://localhost:8081/oauth/callback
+      LIMINALLABS_GATEWAY_FRONTEND_URL: http://localhost:3000
+      LIMINALLABS_GATEWAY_COOKIE_DOMAIN: localhost
       LIMINALLABS_GATEWAY_COOKIE_SAME_SITE: Strict
       LIMINALLABS_GATEWAY_COOKIE_SECURE: false
       LIMINALLABS_GATEWAY_COOKIE_MAX_AGE: 3600
 
       LIMINALLABS_GATEWAY_AUTH_PROVIDER_NAME: keycloak
-      LIMINALLABS_GATEWAY_AUTH_KEYCLOAK_BASE_URL: https://auth-liminallabs.loca.lt
+      LIMINALLABS_GATEWAY_AUTH_KEYCLOAK_BASE_URL: http://localhost:8080
       LIMINALLABS_GATEWAY_AUTH_KEYCLOAK_BASE_URL_INTERNAL: http://keycloak:8080
       LIMINALLABS_GATEWAY_AUTH_KEYCLOAK_REALM: LiminalLabs
       LIMINALLABS_GATEWAY_AUTH_KEYCLOAK_CLIENT_ID: questmaster
@@ -119,30 +139,30 @@ services:
     
     # Variáveis de Runtime (Lado do Servidor)
     environment:
-      CORE_API_URL: https://questmaster-gateway-liminallabs.loca.lt
+      CORE_API_URL: http://localhost:8081
       SESSION_COOKIE_NAME: QUESTMASTER_SESSION
     networks:
       - questmaster
 
       
-  tunnel-frontend:
-    image: node:lts-alpine
-    container_name: tunnel-frontend
-    # O comando aponta para o nome do serviço e a porta interna
-    command: npx localtunnel --port 3000 --local-host questmaster-frontend --subdomain questmaster-liminallabs
-    networks:
-      - questmaster
-    depends_on:
-      - questmaster-frontend
+  # tunnel-frontend:
+  #   image: node:lts-alpine
+  #   container_name: tunnel-frontend
+  #   # O comando aponta para o nome do serviço e a porta interna
+  #   command: npx localtunnel --port 3000 --local-host questmaster-frontend --subdomain questmaster-liminallabs
+  #   networks:
+  #     - questmaster
+  #   depends_on:
+  #     - questmaster-frontend
 
-  tunnel-gateway:
-    image: node:lts-alpine
-    container_name: tunnel-gateway
-    command: npx localtunnel --port 8080 --local-host questmaster-gateway --subdomain questmaster-gateway-liminallabs
-    networks:
-      - questmaster
-    depends_on:
-      - questmaster-gateway
+  # tunnel-gateway:
+  #   image: node:lts-alpine
+  #   container_name: tunnel-gateway
+  #   command: npx localtunnel --port 8080 --local-host questmaster-gateway --subdomain questmaster-gateway-liminallabs
+  #   networks:
+  #     - questmaster
+  #   depends_on:
+  #     - questmaster-gateway
 
 networks:
   questmaster_db:
@@ -160,5 +180,6 @@ networks:
 
 volumes:
   postgres_core_data:
+  postgres_coc_data:
   mongo_gateway_data:
   mongo_perm_data:

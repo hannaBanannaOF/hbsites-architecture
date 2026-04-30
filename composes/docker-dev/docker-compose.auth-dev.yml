@@ -43,14 +43,14 @@ services:
       - auth
       - auth_db
 
-  tunnel-auth:
-    image: node:lts-alpine
-    container_name: tunnel-auth
-    command: npx localtunnel --port 8080 --local-host keycloak --subdomain auth-liminallabs
-    networks:
-      - auth
-    depends_on:
-      - keycloak
+  # tunnel-auth:
+  #   image: node:lts-alpine
+  #   container_name: tunnel-auth
+  #   command: npx localtunnel --port 8080 --local-host keycloak --subdomain auth-liminallabs
+  #   networks:
+  #     - auth
+  #   depends_on:
+  #     - keycloak
 
 networks:
   auth:
