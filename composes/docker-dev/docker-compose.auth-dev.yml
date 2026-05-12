@@ -35,6 +35,12 @@ services:
       KC_DB_PASSWORD: postgres
       KC_PROXY: edge
       KC_HOSTNAME_STRICT: false
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/live HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && cat <&3 | grep 'HTTP/1.1 200 OK'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     depends_on:
       - postgres
     ports:
@@ -42,15 +48,6 @@ services:
     networks:
       - auth
       - auth_db
-
-  # tunnel-auth:
-  #   image: node:lts-alpine
-  #   container_name: tunnel-auth
-  #   command: npx localtunnel --port 8080 --local-host keycloak --subdomain auth-liminallabs
-  #   networks:
-  #     - auth
-  #   depends_on:
-  #     - keycloak
 
 networks:
   auth:

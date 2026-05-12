@@ -20,51 +20,22 @@ services:
     ports:
       - "5433:5432"
 
-  postgres-coc:
-    container_name: questmaster-coc-db
-    image: "postgres:16"
-    healthcheck:
-      test: [ "CMD", "pg_isready", "-q", "-d", "postgres", "-U", "postgres" ]
-      timeout: 45s
-      interval: 10s
-      retries: 10
-    volumes:
-      - postgres_coc_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: questmaster-coc
-      POSTGRES_HOST: postgres-coc
-    networks:
-      - questmaster_db
-    ports:
-      - "5434:5432"
-
   gateway-db:
     container_name: questmaster-gateway-db
-    image: mongo:8.2.4
+    image: mongo:7.0
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: mongodb
       MONGO_INITDB_DATABASE: gateway
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     ports:
       - "27018:27017"
     volumes:
       - mongo_gateway_data:/data/db
-    networks:
-      - questmaster_db
-
-  perm-db:
-    container_name: questmaster-perm-db
-    image: mongo:8.2.4
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: mongodb
-      MONGO_INITDB_DATABASE: perm
-    ports:
-      - "27019:27017"
-    volumes:
-      - mongo_perm_data:/data/db
     networks:
       - questmaster_db
 
@@ -77,11 +48,7 @@ services:
       MANAGEMENT_ENDPOINT_GATEWAY_ACCESS: UNRESTRICTED
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "*"
 
-      SPRING_DATA_MONGODB_HOST: gateway-db
-      SPRING_DATA_MONGODB_PORT: 27017
-      SPRING_DATA_MONGODB_AUTHENTICATION_DATABASE: admin
-      SPRING_DATA_MONGODB_USERNAME: root
-      SPRING_DATA_MONGODB_PASSWORD: mongodb
+      SPRING_DATA_MONGODB_URI: mongodb://root:mongodb@gateway-db:27017/gateway?authSource=admin
       SPRING_DATA_MONGODB_DATABASE: gateway
 
       LIMINALLABS_GATEWAY_SESSION_COOKIE_NAME: QUESTMASTER_SESSION
@@ -100,6 +67,12 @@ services:
       LIMINALLABS_GATEWAY_AUTH_KEYCLOAK_CLIENT_SECRET: xKa7P5CGXwoYnSjQrI7g9UUXYP16LXOw
 
       JAVA_TOOL_OPTIONS: -Dspring.config.additional-location=/config/routes.yml
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /actuator/health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && cat <&3 | grep 'UP'"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     volumes:
       - ../../../gateway/config/questmaster-routes.yml:/config/routes.yml
     depends_on:
@@ -118,51 +91,21 @@ services:
       OIDC_HOST: http://keycloak:8080/realms/LiminalLabs
 
       DB_URL: postgres://postgres:postgres@postgres-core:5432/questmaster-core
-
-      MONGODB_URL: mongodb://root:mongodb@perm-db:27017/admin
-      MONGODB_DATABASENAME: questmaster-perm
+    healthcheck:
+      test: ["CMD", "/questmaster-core", "--check-health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
     depends_on:
       - postgres-core
+      - questmaster-gateway
     ports: 
       - "8082:8080"
     networks:
       - auth
-      - rabbitmq
       - questmaster
       - questmaster_db
-
-  questmaster-frontend:
-    image: labs.liminal/questmaster/questmaster-frontend:1.0.0
-    container_name: questmaster-frontend
-    ports:
-      - "3000:3000"
-    
-    # Variáveis de Runtime (Lado do Servidor)
-    environment:
-      CORE_API_URL: http://localhost:8081
-      SESSION_COOKIE_NAME: QUESTMASTER_SESSION
-    networks:
-      - questmaster
-
-      
-  # tunnel-frontend:
-  #   image: node:lts-alpine
-  #   container_name: tunnel-frontend
-  #   # O comando aponta para o nome do serviço e a porta interna
-  #   command: npx localtunnel --port 3000 --local-host questmaster-frontend --subdomain questmaster-liminallabs
-  #   networks:
-  #     - questmaster
-  #   depends_on:
-  #     - questmaster-frontend
-
-  # tunnel-gateway:
-  #   image: node:lts-alpine
-  #   container_name: tunnel-gateway
-  #   command: npx localtunnel --port 8080 --local-host questmaster-gateway --subdomain questmaster-gateway-liminallabs
-  #   networks:
-  #     - questmaster
-  #   depends_on:
-  #     - questmaster-gateway
 
 networks:
   questmaster_db:
@@ -171,15 +114,10 @@ networks:
   questmaster:
     name: questmaster
     driver: bridge
-  rabbitmq:
-    name: rabbitmq
-    external: true
   auth:
     name: auth
     external: true
 
 volumes:
   postgres_core_data:
-  postgres_coc_data:
   mongo_gateway_data:
-  mongo_perm_data:
