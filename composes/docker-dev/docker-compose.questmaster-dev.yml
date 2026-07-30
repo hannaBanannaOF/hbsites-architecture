@@ -41,7 +41,7 @@ services:
 
   questmaster-gateway:
     container_name: questmaster-gateway
-    image: labs.liminal/gateway:1.0.0
+    image: ghcr.io/hannabanannaof/gateway:1.0.0
     environment:
       ALLOWED_ORIGIN: http://localhost:3000
 
@@ -86,7 +86,7 @@ services:
 
   questmaster-core:
     container_name: questmaster-core
-    image: labs.liminal/questmaster/questmaster-core:1.0.0
+    image: ghcr.io/hannabanannaof/questmaster/questmaster-core:1.0.0
     environment:
       OIDC_HOST: http://keycloak:8080/realms/LiminalLabs
 
