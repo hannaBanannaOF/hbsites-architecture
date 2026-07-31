@@ -107,6 +107,20 @@ services:
       - questmaster
       - questmaster_db
 
+  questmaster-frontend:
+    container_name: questmaster-frontend
+    image: ghcr.io/hannabanannaof/questmaster/questmaster-frontend:1.0.0
+    environment:
+      CORE_API_URL: http://questmaster-core:8080
+      SESSION_COOKIE_NAME: QUESTMASTER_SESSION
+    depends_on:
+      - questmaster-core
+      - questmaster-gateway
+    ports: 
+      - "3001:3000"
+    networks:
+      - questmaster
+
 networks:
   questmaster_db:
     name: questmaster_db
