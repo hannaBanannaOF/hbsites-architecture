@@ -1,2 +1,4 @@
 *.drawio.bkp
 *.drawio.dtmp
+# MkDocs build output
+site/
