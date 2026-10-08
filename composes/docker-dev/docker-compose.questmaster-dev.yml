@@ -41,7 +41,7 @@ services:
 
   questmaster-gateway:
     container_name: questmaster-gateway
-    image: ghcr.io/hannabanannaof/gateway:1.0.0
+    image: ghcr.io/hannabanannaof/gateway:1.1.0
     environment:
       ALLOWED_ORIGIN: http://localhost:3000
 
@@ -76,31 +76,49 @@ services:
     volumes:
       - ../../../gateway/config/questmaster-routes.yml:/config/routes.yml
     depends_on:
-      - gateway-db
-    ports: 
+      gateway-db:
+        condition: service_healthy
+    restart: on-failure
+    ports:
       - "8081:8080"
     networks:
       - questmaster
       - auth
       - questmaster_db
 
+  # Aplica as migrations do core e sai; o core só sobe se terminar com sucesso
+  questmaster-core-migrate:
+    container_name: questmaster-core-migrate
+    image: ghcr.io/hannabanannaof/questmaster/questmaster-core:1.1.0
+    command: ["-migrate"]
+    environment:
+      DB_URL: postgres://postgres:postgres@postgres-core:5432/questmaster-core?sslmode=disable
+    depends_on:
+      postgres-core:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - questmaster_db
+
   questmaster-core:
     container_name: questmaster-core
-    image: ghcr.io/hannabanannaof/questmaster/questmaster-core:1.0.0
+    image: ghcr.io/hannabanannaof/questmaster/questmaster-core:1.1.0
     environment:
       OIDC_HOST: http://keycloak:8080/realms/LiminalLabs
 
-      DB_URL: postgres://postgres:postgres@postgres-core:5432/questmaster-core
+      DB_URL: postgres://postgres:postgres@postgres-core:5432/questmaster-core?sslmode=disable
     healthcheck:
-      test: ["CMD", "/questmaster-core", "--check-health"]
+      test: ["CMD", "/questmaster-core", "-check-health"]
       interval: 15s
       timeout: 3s
       retries: 3
       start_period: 5s
     depends_on:
-      - postgres-core
-      - questmaster-gateway
-    ports: 
+      questmaster-core-migrate:
+        condition: service_completed_successfully
+    # Busca o JWKS do Keycloak na subida e cai se ele ainda não estiver pronto
+    restart: on-failure
+    ports:
       - "8082:8080"
     networks:
       - auth
@@ -111,13 +129,17 @@ services:
     container_name: questmaster-frontend
     image: ghcr.io/hannabanannaof/questmaster/questmaster-frontend:1.0.0
     environment:
-      CORE_API_URL: http://questmaster-core:8080
+      # Sempre via gateway: ele troca o cookie de sessão pelo Bearer token
+      CORE_API_URL: http://questmaster-gateway:8080
       SESSION_COOKIE_NAME: QUESTMASTER_SESSION
     depends_on:
-      - questmaster-core
-      - questmaster-gateway
-    ports: 
-      - "3001:3000"
+      questmaster-core:
+        condition: service_healthy
+      questmaster-gateway:
+        condition: service_healthy
+    ports:
+      # Precisa bater com ALLOWED_ORIGIN e LIMINALLABS_GATEWAY_FRONTEND_URL do gateway
+      - "3000:3000"
     networks:
       - questmaster
 
