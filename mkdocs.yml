@@ -1,0 +1,73 @@
+site_name: Liminal Labs Architecture
+site_description: Architecture and design docs for all Liminal Labs sites
+site_url: https://hannabananaof.github.io/hbsites-architecture/
+repo_url: https://github.com/hannaBanannaOF/hbsites-architecture
+repo_name: hbsites-architecture
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  icon:
+    logo: material/sitemap
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - content.code.copy
+    - content.action.edit
+    - search.highlight
+
+plugins:
+  - search
+  - drawio:
+      darkmode: true
+      toolbar:
+        no_hide: true
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Running locally: getting-started.md
+      - Services & ports: services.md
+  - Platform:
+      - Authentication: auth.md
+  - QuestMaster:
+      - questmaster/index.md
+      - Database: questmaster/database.md
+  - SousChef:
+      - Database: souschef/database.md
