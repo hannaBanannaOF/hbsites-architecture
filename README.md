@@ -4,7 +4,7 @@ Architecture and design files for all my sites: service diagrams, database model
 
 > *"Liminal Labs" is just a placeholder name I came up with, it's not a business.*
 
-📖 **Docs: <https://hannabananaof.github.io/hbsites-architecture/>**
+📖 **Docs: <https://hannabanannaof.github.io/hbsites-architecture/>**
 
 ## Repository layout
 
