@@ -41,6 +41,19 @@ Startup order is handled by the compose file: the databases come up first, `ques
 
 See [Services & ports](services.md) for what's running where.
 
+## Customizing the environment
+
+Image versions, host ports, public URLs and passwords can be overridden with a `.env` file next to the compose files (it's git-ignored and used by both stacks):
+
+```shell
+cp composes/docker-dev/.env.example composes/docker-dev/.env
+```
+
+Anything left out of `.env` keeps the default shown in [`.env.example`](https://github.com/hannaBanannaOF/hbsites-architecture/blob/main/composes/docker-dev/.env.example). To keep several setups, pass one explicitly with `--env-file`.
+
+!!! warning
+    Database passwords only apply when the volume is first created. After changing one, recreate the volume with `down -v`.
+
 ## Stopping
 
 ```shell

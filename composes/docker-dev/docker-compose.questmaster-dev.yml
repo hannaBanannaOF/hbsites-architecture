@@ -12,20 +12,20 @@ services:
       - postgres_core_data:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${CORE_DB_PASSWORD:-postgres}
       POSTGRES_DB: questmaster-core
       POSTGRES_HOST: postgres-core
     networks:
       - questmaster_db
     ports:
-      - "5433:5432"
+      - "${CORE_DB_PORT:-5433}:5432"
 
   gateway-db:
     container_name: questmaster-gateway-db
     image: mongo:7.0
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: mongodb
+      MONGO_INITDB_ROOT_PASSWORD: ${GATEWAY_DB_PASSWORD:-mongodb}
       MONGO_INITDB_DATABASE: gateway
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
@@ -33,7 +33,7 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "27018:27017"
+      - "${GATEWAY_DB_PORT:-27018}:27017"
     volumes:
       - mongo_gateway_data:/data/db
     networks:
@@ -41,30 +41,30 @@ services:
 
   questmaster-gateway:
     container_name: questmaster-gateway
-    image: ghcr.io/hannabanannaof/gateway:1.1.0
+    image: ghcr.io/hannabanannaof/gateway:${GATEWAY_VERSION:-1.1.0}
     environment:
-      ALLOWED_ORIGIN: http://localhost:3000
+      ALLOWED_ORIGIN: ${FRONTEND_URL:-http://localhost:3000}
 
       MANAGEMENT_ENDPOINT_GATEWAY_ACCESS: UNRESTRICTED
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "*"
 
-      SPRING_DATA_MONGODB_URI: mongodb://root:mongodb@gateway-db:27017/gateway?authSource=admin
+      SPRING_DATA_MONGODB_URI: mongodb://root:${GATEWAY_DB_PASSWORD:-mongodb}@gateway-db:27017/gateway?authSource=admin
       SPRING_DATA_MONGODB_DATABASE: gateway
 
       LIMINALLABS_GATEWAY_SESSION_COOKIE_NAME: QUESTMASTER_SESSION
-      LIMINALLABS_GATEWAY_OAUTH_CALLBACK_URL: http://localhost:8081/oauth/callback
-      LIMINALLABS_GATEWAY_FRONTEND_URL: http://localhost:3000
-      LIMINALLABS_GATEWAY_COOKIE_DOMAIN: localhost
+      LIMINALLABS_GATEWAY_OAUTH_CALLBACK_URL: ${GATEWAY_PUBLIC_URL:-http://localhost:8081}/oauth/callback
+      LIMINALLABS_GATEWAY_FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      LIMINALLABS_GATEWAY_COOKIE_DOMAIN: ${COOKIE_DOMAIN:-localhost}
       LIMINALLABS_GATEWAY_COOKIE_SAME_SITE: Strict
       LIMINALLABS_GATEWAY_COOKIE_SECURE: false
       LIMINALLABS_GATEWAY_COOKIE_MAX_AGE: 3600
 
       LIMINALLABS_GATEWAY_AUTH_PROVIDER_NAME: keycloak
-      LIMINALLABS_GATEWAY_AUTH_KEYCLOAK_BASE_URL: http://localhost:8080
+      LIMINALLABS_GATEWAY_AUTH_KEYCLOAK_BASE_URL: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8080}
       LIMINALLABS_GATEWAY_AUTH_KEYCLOAK_BASE_URL_INTERNAL: http://keycloak:8080
       LIMINALLABS_GATEWAY_AUTH_KEYCLOAK_REALM: LiminalLabs
       LIMINALLABS_GATEWAY_AUTH_KEYCLOAK_CLIENT_ID: questmaster
-      LIMINALLABS_GATEWAY_AUTH_KEYCLOAK_CLIENT_SECRET: xKa7P5CGXwoYnSjQrI7g9UUXYP16LXOw
+      LIMINALLABS_GATEWAY_AUTH_KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-xKa7P5CGXwoYnSjQrI7g9UUXYP16LXOw}
 
       JAVA_TOOL_OPTIONS: -Dspring.config.additional-location=/config/routes.yml
     healthcheck:
@@ -80,7 +80,7 @@ services:
         condition: service_healthy
     restart: on-failure
     ports:
-      - "8081:8080"
+      - "${GATEWAY_PORT:-8081}:8080"
     networks:
       - questmaster
       - auth
@@ -89,10 +89,10 @@ services:
   # Aplica as migrations do core e sai; o core só sobe se terminar com sucesso
   questmaster-core-migrate:
     container_name: questmaster-core-migrate
-    image: ghcr.io/hannabanannaof/questmaster/questmaster-core:1.1.0
+    image: ghcr.io/hannabanannaof/questmaster/questmaster-core:${CORE_VERSION:-1.2.0}
     command: ["-migrate"]
     environment:
-      DB_URL: postgres://postgres:postgres@postgres-core:5432/questmaster-core?sslmode=disable
+      DB_URL: postgres://postgres:${CORE_DB_PASSWORD:-postgres}@postgres-core:5432/questmaster-core?sslmode=disable
     depends_on:
       postgres-core:
         condition: service_healthy
@@ -102,11 +102,11 @@ services:
 
   questmaster-core:
     container_name: questmaster-core
-    image: ghcr.io/hannabanannaof/questmaster/questmaster-core:1.1.0
+    image: ghcr.io/hannabanannaof/questmaster/questmaster-core:${CORE_VERSION:-1.2.0}
     environment:
       OIDC_HOST: http://keycloak:8080/realms/LiminalLabs
 
-      DB_URL: postgres://postgres:postgres@postgres-core:5432/questmaster-core?sslmode=disable
+      DB_URL: postgres://postgres:${CORE_DB_PASSWORD:-postgres}@postgres-core:5432/questmaster-core?sslmode=disable
     healthcheck:
       test: ["CMD", "/questmaster-core", "-check-health"]
       interval: 15s
@@ -119,7 +119,7 @@ services:
     # Busca o JWKS do Keycloak na subida e cai se ele ainda não estiver pronto
     restart: on-failure
     ports:
-      - "8082:8080"
+      - "${CORE_PORT:-8082}:8080"
     networks:
       - auth
       - questmaster
@@ -127,7 +127,7 @@ services:
 
   questmaster-frontend:
     container_name: questmaster-frontend
-    image: ghcr.io/hannabanannaof/questmaster/questmaster-frontend:1.0.0
+    image: ghcr.io/hannabanannaof/questmaster/questmaster-frontend:${FRONTEND_VERSION:-1.0.0}
     environment:
       # Sempre via gateway: ele troca o cookie de sessão pelo Bearer token
       CORE_API_URL: http://questmaster-gateway:8080
@@ -138,8 +138,8 @@ services:
       questmaster-gateway:
         condition: service_healthy
     ports:
-      # Precisa bater com ALLOWED_ORIGIN e LIMINALLABS_GATEWAY_FRONTEND_URL do gateway
-      - "3000:3000"
+      # Precisa bater com FRONTEND_URL
+      - "${FRONTEND_PORT:-3000}:3000"
     networks:
       - questmaster
 
