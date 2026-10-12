@@ -89,7 +89,7 @@ services:
   # Aplica as migrations do core e sai; o core só sobe se terminar com sucesso
   questmaster-core-migrate:
     container_name: questmaster-core-migrate
-    image: ghcr.io/hannabanannaof/questmaster/questmaster-core:${CORE_VERSION:-1.2.0}
+    image: ghcr.io/hannabanannaof/questmaster/questmaster-core:${CORE_VERSION:-1.4.0}
     command: ["-migrate"]
     environment:
       DB_URL: postgres://postgres:${CORE_DB_PASSWORD:-postgres}@postgres-core:5432/questmaster-core?sslmode=disable
@@ -102,7 +102,7 @@ services:
 
   questmaster-core:
     container_name: questmaster-core
-    image: ghcr.io/hannabanannaof/questmaster/questmaster-core:${CORE_VERSION:-1.2.0}
+    image: ghcr.io/hannabanannaof/questmaster/questmaster-core:${CORE_VERSION:-1.4.0}
     environment:
       OIDC_HOST: http://keycloak:8080/realms/LiminalLabs
 
