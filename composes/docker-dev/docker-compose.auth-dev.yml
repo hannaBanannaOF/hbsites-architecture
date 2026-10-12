@@ -12,13 +12,13 @@ services:
       - postgres_data:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-postgres}
       POSTGRES_DB: keycloak
       POSTGRES_HOST: postgres
     networks:
       - auth_db
     ports:
-      - "5432:5432"
+      - "${KEYCLOAK_DB_PORT:-5432}:5432"
       
   keycloak:
     container_name: keycloak
@@ -28,11 +28,11 @@ services:
       KC_HTTP_ENABLED: true
       KC_HEALTH_ENABLED: true
       KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: password
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-password}
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres/keycloak
       KC_DB_USERNAME: postgres
-      KC_DB_PASSWORD: postgres
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-postgres}
       KC_PROXY: edge
       KC_HOSTNAME_STRICT: false
     healthcheck:
@@ -44,7 +44,7 @@ services:
     depends_on:
       - postgres
     ports:
-      - 8080:8080
+      - "${KEYCLOAK_PORT:-8080}:8080"
     networks:
       - auth
       - auth_db

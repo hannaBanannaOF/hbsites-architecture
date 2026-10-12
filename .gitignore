@@ -2,3 +2,6 @@
 *.drawio.dtmp
 # MkDocs build output
 site/
+
+# Overrides locais dos composes
+.env
